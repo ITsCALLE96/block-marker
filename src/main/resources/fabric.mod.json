@@ -4,15 +4,21 @@
 	"version": "${version}",
 	"name": "Block-Marker",
 	"description": "Färbt gewählte Blöcke ein und lässt sie auf Wunsch leuchten – mit Profilen, Suche und Tasten. Kein X-Ray: nur sichtbare Blöcke ändern ihr Aussehen.",
-	"authors": ["ITsCALLE96"],
+	"authors": [
+		"ITsCALLE96"
+	],
 	"contact": {
 		"sources": "https://github.com/ITsCALLE96/block-marker"
 	},
 	"license": "MIT",
 	"environment": "client",
 	"entrypoints": {
-		"client": ["de.itscalle96.blockmarker.BlockMarkerClient"],
-		"modmenu": ["de.itscalle96.blockmarker.ui.ModMenuEinstieg"]
+		"client": [
+			"de.itscalle96.blockmarker.BlockMarkerClient"
+		],
+		"modmenu": [
+			"de.itscalle96.blockmarker.ui.ModMenuEinstieg"
+		]
 	},
 	"depends": {
 		"fabricloader": ">=0.20.1",
@@ -22,5 +28,8 @@
 	},
 	"suggests": {
 		"modmenu": "*"
-	}
+	},
+	"mixins": [
+		"blockmarker.mixins.json"
+	]
 }
