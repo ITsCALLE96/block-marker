@@ -32,6 +32,37 @@ loom {
 	}
 }
 
+// Test-Client: startet Minecraft mit Sodium + Iris, baut eine kleine Szene und macht Screenshots
+// (./gradlew runClientGameTest – Bilder landen in build/run/clientGameTest/screenshots)
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = "blockmarker-gametest"
+		enableGameTests = false
+		enableClientGameTests = true
+		eula = true
+	}
+}
+
+loom {
+	runs {
+		clientGameTest {
+			vmArg "-Dblockmarker.screenshots=${file('build/block-marker-screenshots').absolutePath}"
+		}
+	}
+}
+
+// Shader-Pack und Iris-Einstellung in den frisch geleerten Test-Ordner legen (siehe testumgebung/LIESMICH.md)
+tasks.named('runClientGameTest') {
+	doFirst {
+		copy {
+			from 'testumgebung'
+			into loom.runs.clientGameTest.runDir
+			exclude 'LIESMICH.md'
+		}
+	}
+}
+
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
@@ -44,6 +75,8 @@ dependencies {
 	runtimeOnly "maven.modrinth:sodium:${project.sodium_version}"
 	runtimeOnly "maven.modrinth:iris:${project.iris_version}"
 	runtimeOnly "maven.modrinth:modmenu:${project.modmenu_version}"
+
+	gametestCompileOnly "maven.modrinth:iris:${project.iris_version}"
 
 	testImplementation platform('org.junit:junit-bom:5.13.4')
 	testImplementation 'org.junit.jupiter:junit-jupiter'

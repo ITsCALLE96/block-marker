@@ -12,7 +12,7 @@
 	"blockmarker.meldung.keinprofil": "Block-Marker: Erst ein Profil einschalten (Taste für „Nächstes Profil“)",
 	"blockmarker.meldung.hinzu": "%s ist jetzt in „%s“ markiert",
 	"blockmarker.meldung.raus": "%s aus „%s“ entfernt",
-	"blockmarker.spalte.profile": "Profile (Doppelklick = an/aus)",
+	"blockmarker.spalte.profile": "Profile",
 	"blockmarker.spalte.bloecke": "Blöcke in „%s“",
 	"blockmarker.spalte.bloecke.leer": "Blöcke",
 	"blockmarker.spalte.suche": "Block hinzufügen",
@@ -30,5 +30,6 @@
 	"blockmarker.knopf.leuchtet.aus": "Leuchtet: aus",
 	"blockmarker.knopf.leuchtet.hilfe": "Der Block ist auch im Dunkeln voll hell. Er leuchtet nicht durch Wände und gibt kein Licht an die Umgebung ab.",
 	"blockmarker.status.aus": "Gerade aus",
-	"blockmarker.status.aktiv": "Aktiv: %s"
+	"blockmarker.status.aktiv": "Aktiv: %s",
+	"blockmarker.profil.hilfe": "Doppelklick schaltet das Profil ein oder aus"
 }

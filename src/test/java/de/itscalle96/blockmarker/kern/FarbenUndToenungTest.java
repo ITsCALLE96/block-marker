@@ -72,4 +72,34 @@ class FarbenUndToenungTest {
 		int t = Toenung.toene(0xFF3A2A28, 0xFF2BD6);
 		assertTrue(((t >> 16) & 0xFF) > 90, Integer.toHexString(t));
 	}
+
+	@Test
+	void kraeftigeFarbfleckenBehaltenIhreEigeneFarbe() {
+		// Grüner Moosfleck bei oranger Markierung: bleibt grünlicher als ein grauer Stein-Pixel gleicher Helligkeit
+		int moos = Toenung.toene(0xFF4C8A2A, 0xFF8000);
+		int stein = Toenung.toene(0xFF717171, 0xFF8000);
+		int gruenMoos = (moos >> 8) & 0xFF, rotMoos = (moos >> 16) & 0xFF;
+		int gruenStein = (stein >> 8) & 0xFF, rotStein = (stein >> 16) & 0xFF;
+		assertTrue(gruenMoos - rotMoos > gruenStein - rotStein + 40,
+				"Moos " + Integer.toHexString(moos) + " vs Stein " + Integer.toHexString(stein));
+	}
+
+	@Test
+	void helligkeitsSpanneVerstaerktDenKontrast() {
+		// Textur mit wenig Kontrast (nur Grautöne 90..130): mit Spanne deutlich unterschiedlicher
+		int farbe = 0x00F0FF;
+		int ohneDunkel = Toenung.toene(0xFF5A5A5A, farbe) & 0xFF;
+		int ohneHell = Toenung.toene(0xFF828282, farbe) & 0xFF;
+		float lo = 90 / 255f, hi = 130 / 255f;
+		int mitDunkel = Toenung.toene(0xFF5A5A5A, farbe, Toenung.STAERKE, lo, hi) & 0xFF;
+		int mitHell = Toenung.toene(0xFF828282, farbe, Toenung.STAERKE, lo, hi) & 0xFF;
+		assertTrue(mitHell - mitDunkel > 2 * (ohneHell - ohneDunkel),
+				"mit Spanne " + (mitHell - mitDunkel) + ", ohne " + (ohneHell - ohneDunkel));
+	}
+
+	@Test
+	void einfarbigeTexturBleibtGetoent() {
+		int t = Toenung.toene(0xFF808080, 0xFF0000, Toenung.STAERKE, 0.5f, 0.5f);
+		assertTrue(((t >> 16) & 0xFF) > 150, Integer.toHexString(t));
+	}
 }

@@ -87,6 +87,7 @@ public final class MarkerBildschirm extends Screen {
 
 		// Spalte 1: Profile
 		profilListe = addRenderableWidget(new ProfilListe(w, listenUnten - OBEN, x(0), OBEN));
+		profilListe.setTooltip(Tooltip.create(Component.translatable("blockmarker.profil.hilfe")));
 		namensFeld = addRenderableWidget(new EditBox(font, x(0), height - 104, w, 20, Component.translatable("blockmarker.profilname")));
 		namensFeld.setMaxLength(32);
 		namensFeld.setHint(Component.translatable("blockmarker.profilname"));
@@ -126,6 +127,7 @@ public final class MarkerBildschirm extends Screen {
 			aktualisiereSuche();
 		});
 		suchListe = addRenderableWidget(new SuchListe(w, height - 60 - (OBEN + 24), x(2), OBEN + 24));
+		setInitialFocus(suchFeld);
 
 		addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> onClose())
 				.bounds(width / 2 - 100, height - 28, 200, 20).build());
@@ -281,13 +283,22 @@ public final class MarkerBildschirm extends Screen {
 	public void extractRenderState(GuiGraphicsExtractor g, int mausX, int mausY, float delta) {
 		super.extractRenderState(g, mausX, mausY, delta);
 		g.centeredText(font, title, width / 2, 8, 0xFFFFFFFF);
-		g.text(font, Component.translatable("blockmarker.spalte.profile"), x(0), OBEN - 11, 0xFFA0A0A0);
-		g.text(font, gewaehlt == null ? Component.translatable("blockmarker.spalte.bloecke.leer")
-				: Component.translatable("blockmarker.spalte.bloecke", gewaehlt.name()), x(1), OBEN - 11, 0xFFA0A0A0);
-		g.text(font, Component.translatable("blockmarker.spalte.suche"), x(2), OBEN - 11, 0xFFA0A0A0);
+		ueberschrift(g, Component.translatable("blockmarker.spalte.profile"), 0);
+		ueberschrift(g, gewaehlt == null ? Component.translatable("blockmarker.spalte.bloecke.leer")
+				: Component.translatable("blockmarker.spalte.bloecke", gewaehlt.name()), 1);
+		ueberschrift(g, Component.translatable("blockmarker.spalte.suche"), 2);
 		Component status = e.aktivName() == null ? Component.translatable("blockmarker.status.aus")
 				: Component.translatable("blockmarker.status.aktiv", e.aktivName());
 		g.text(font, status, x(2), height - 50, 0xFFE0E0E0);
+	}
+
+	private void ueberschrift(GuiGraphicsExtractor g, Component text, int nr) {
+		g.text(font, font.plainSubstrByWidth(text.getString(), spalte()), x(nr), OBEN - 11, 0xFFA0A0A0);
+	}
+
+	/** Für den Test-Client: wie viele Blöcke die Suche gerade zeigt. */
+	public int anzahlTreffer() {
+		return suchListe.children().size();
 	}
 
 	@Override

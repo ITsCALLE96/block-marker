@@ -12,7 +12,7 @@
 	"blockmarker.meldung.keinprofil": "Block Marker: turn on a profile first (\"Next profile\" key)",
 	"blockmarker.meldung.hinzu": "%s is now marked in \"%s\"",
 	"blockmarker.meldung.raus": "%s removed from \"%s\"",
-	"blockmarker.spalte.profile": "Profiles (double-click = on/off)",
+	"blockmarker.spalte.profile": "Profiles",
 	"blockmarker.spalte.bloecke": "Blocks in \"%s\"",
 	"blockmarker.spalte.bloecke.leer": "Blocks",
 	"blockmarker.spalte.suche": "Add block",
@@ -30,5 +30,6 @@
 	"blockmarker.knopf.leuchtet.aus": "Glows: off",
 	"blockmarker.knopf.leuchtet.hilfe": "The block stays fully bright in the dark. It does not glow through walls or light up its surroundings.",
 	"blockmarker.status.aus": "Currently off",
-	"blockmarker.status.aktiv": "Active: %s"
+	"blockmarker.status.aktiv": "Active: %s",
+	"blockmarker.profil.hilfe": "Double-click turns the profile on or off"
 }

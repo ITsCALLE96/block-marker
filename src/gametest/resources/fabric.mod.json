@@ -1,0 +1,13 @@
+{
+	"schemaVersion": 1,
+	"id": "blockmarker-gametest",
+	"version": "1.0.0",
+	"name": "Block-Marker Test-Client",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": ["de.itscalle96.blockmarker.gametest.ScreenshotTest"]
+	},
+	"depends": {
+		"blockmarker": "*"
+	}
+}

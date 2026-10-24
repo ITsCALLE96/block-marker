@@ -16,10 +16,22 @@ public final class PngToener implements PackBauer.Toener {
 			if (bild == null) {
 				return png;
 			}
+			// Helligkeitsspanne der sichtbaren Pixel, damit das Muster nach dem Tönen kräftig bleibt
+			float min = 1f, max = 0f;
+			for (int y = 0; y < bild.getHeight(); y++) {
+				for (int x = 0; x < bild.getWidth(); x++) {
+					int argb = bild.getRGB(x, y);
+					if (argb >>> 24 != 0) {
+						float h = Toenung.helligkeit(argb);
+						min = Math.min(min, h);
+						max = Math.max(max, h);
+					}
+				}
+			}
 			BufferedImage aus = new BufferedImage(bild.getWidth(), bild.getHeight(), BufferedImage.TYPE_INT_ARGB);
 			for (int y = 0; y < bild.getHeight(); y++) {
 				for (int x = 0; x < bild.getWidth(); x++) {
-					aus.setRGB(x, y, Toenung.toene(bild.getRGB(x, y), farbe));
+					aus.setRGB(x, y, Toenung.toene(bild.getRGB(x, y), farbe, Toenung.STAERKE, min, max));
 				}
 			}
 			ByteArrayOutputStream puffer = new ByteArrayOutputStream();

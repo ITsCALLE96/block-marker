@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 
 /** Meldet das Block-Marker-Pack bei Minecraft an: immer aktiv, immer ganz oben. */
 public final class MarkerQuelle implements RepositorySource {
-	public static final String PACK_ID = "blockmarker";
+	public static final String PACK_ID = "blockmarker_laufzeit";
 
 	private static final PackLocationInfo ORT = new PackLocationInfo(PACK_ID,
 			Component.translatable("blockmarker.pack.titel"), PackSource.BUILT_IN, Optional.empty());

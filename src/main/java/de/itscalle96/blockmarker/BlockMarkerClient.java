@@ -83,9 +83,8 @@ public final class BlockMarkerClient implements ClientModInitializer {
 		} catch (IOException fehler) {
 			LOG.error("Block-Marker: Einstellungen nicht gespeichert", fehler);
 		}
-		if (!aktiveEintraege().equals(geladen)) {
-			neuladenIn = NEULADEN_VERZOEGERUNG;
-		}
+		// Raus und gleich wieder rein ergibt den alten Stand – dann nicht neu laden
+		neuladenIn = aktiveEintraege().equals(geladen) ? -1 : NEULADEN_VERZOEGERUNG;
 	}
 
 	/** Der Einstellungs-Bildschirm lädt erst beim Schließen neu – dann aber sofort. */
