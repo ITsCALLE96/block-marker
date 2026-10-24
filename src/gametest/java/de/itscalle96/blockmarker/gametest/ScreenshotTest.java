@@ -73,6 +73,12 @@ public final class ScreenshotTest implements FabricClientGameTest {
 			}
 			setzeShader(ctx, welt, false);
 		}
+		// Erst hier ist alles geprüft und fotografiert; build.gradle verlangt diese Datei
+		try {
+			Files.writeString(ZIEL.resolve("fertig.txt"), "alle Prüfungen bestanden\n");
+		} catch (java.io.IOException fehler) {
+			throw new java.io.UncheckedIOException(fehler);
+		}
 	}
 
 	/**

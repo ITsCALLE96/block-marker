@@ -52,13 +52,22 @@ loom {
 	}
 }
 
-// Shader-Pack und Iris-Einstellung in den frisch geleerten Test-Ordner legen (siehe testumgebung/LIESMICH.md)
+// Shader-Pack und Iris-Einstellung in den frisch geleerten Test-Ordner legen (siehe testumgebung/LIESMICH.md).
+// Endet das Spiel vorzeitig (z. B. beim Einschalten des Shaders), meldet der Lauf trotzdem Erfolg – deshalb
+// prüft doLast die Fertig-Markierung, die der Test erst nach dem letzten Bild schreibt.
 tasks.named('runClientGameTest') {
+	def bilder = file('build/block-marker-screenshots')
 	doFirst {
+		delete bilder
 		copy {
 			from 'testumgebung'
 			into loom.runs.clientGameTest.runDir
 			exclude 'LIESMICH.md'
+		}
+	}
+	doLast {
+		if (!new File(bilder, 'fertig.txt').exists()) {
+			throw new GradleException("Test-Client ist vorzeitig beendet worden (keine Fertig-Markierung in ${bilder}). Bitte erneut starten.")
 		}
 	}
 }
