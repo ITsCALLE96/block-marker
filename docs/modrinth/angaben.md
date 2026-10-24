@@ -1,5 +1,7 @@
 # Modrinth-Angaben für Block-Marker
 
+**Stand 24.10.2026: nicht hochgeladen.** Modrinths Regel §6 lässt Projekte, die überwiegend von KI stammen, nicht öffentlich zu, und auch nicht gelistete Projekte werden moderiert. Das Modpack enthält die Jar deshalb als Override. Die Unterlagen bleiben für später.
+
 Alles, was beim Anlegen des Projekts und der ersten Version auf modrinth.com einzutragen ist. Die Beschreibung steht in `beschreibung.md`, das Projektbild in `icon.png` und die Galerie-Bilder in `galerie/`.
 
 ## Projekt anlegen („Create a project“)
