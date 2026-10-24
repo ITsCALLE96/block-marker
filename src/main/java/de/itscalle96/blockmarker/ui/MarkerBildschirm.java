@@ -2,6 +2,7 @@ package de.itscalle96.blockmarker.ui;
 
 import de.itscalle96.blockmarker.BlockMarkerClient;
 import de.itscalle96.blockmarker.kern.BlockIds;
+import de.itscalle96.blockmarker.kern.BlockSuche;
 import de.itscalle96.blockmarker.kern.Einstellungen;
 import de.itscalle96.blockmarker.kern.Eintrag;
 import de.itscalle96.blockmarker.kern.Farben;
@@ -46,13 +47,14 @@ public final class MarkerBildschirm extends Screen {
 	private Profil gewaehlt;
 	private String gewaehlterBlock;
 	private String suche = "";
-	private List<Block> alleBloecke;
+	private List<BlockSuche.Kandidat> alleBloecke;
 
 	private ProfilListe profilListe;
 	private BlockListe blockListe;
 	private SuchListe suchListe;
 	private EditBox namensFeld;
 	private EditBox farbFeld;
+	private EditBox suchFeld;
 	private Button aktivKnopf;
 	private Button leuchtKnopf;
 	private Button entfernenKnopf;
@@ -77,10 +79,7 @@ public final class MarkerBildschirm extends Screen {
 	@Override
 	protected void init() {
 		if (alleBloecke == null) {
-			alleBloecke = BuiltInRegistries.BLOCK.stream()
-					.filter(b -> !b.defaultBlockState().isAir())
-					.sorted(Comparator.comparing(b -> b.getName().getString().toLowerCase(Locale.ROOT)))
-					.toList();
+			alleBloecke = BlockNamen.alle();
 		}
 		int w = spalte();
 		int listenUnten = height - 110;
@@ -119,7 +118,7 @@ public final class MarkerBildschirm extends Screen {
 				.bounds(x(1), height - 56, w, 20).build());
 
 		// Spalte 3: Suche
-		EditBox suchFeld = addRenderableWidget(new EditBox(font, x(2), OBEN, w, 20, Component.translatable("blockmarker.suche")));
+		suchFeld = addRenderableWidget(new EditBox(font, x(2), OBEN, w, 20, Component.translatable("blockmarker.suche")));
 		suchFeld.setHint(Component.translatable("blockmarker.suche").withStyle(EditBox.SEARCH_HINT_STYLE));
 		suchFeld.setValue(suche);
 		suchFeld.setResponder(text -> {
@@ -166,7 +165,7 @@ public final class MarkerBildschirm extends Screen {
 
 	private void aktivUmschalten() {
 		if (gewaehlt != null) {
-			e.aktiviere(gewaehlt.name().equals(e.aktivName()) ? null : gewaehlt.name());
+			e.aktiviere(e.aktivesProfil().orElse(null) == gewaehlt ? null : gewaehlt);
 			BlockMarkerClient.geaendert();
 			aktualisiereAlles();
 		}
@@ -238,7 +237,7 @@ public final class MarkerBildschirm extends Screen {
 
 	private void aktualisiereAuswahl() {
 		boolean hatProfil = gewaehlt != null;
-		boolean istAktiv = hatProfil && gewaehlt.name().equals(e.aktivName());
+		boolean istAktiv = hatProfil && e.aktivesProfil().orElse(null) == gewaehlt;
 		aktivKnopf.active = hatProfil;
 		aktivKnopf.setMessage(Component.translatable(istAktiv ? "blockmarker.knopf.ausschalten" : "blockmarker.knopf.aktivieren"));
 		loeschenKnopf.active = hatProfil;
@@ -265,18 +264,7 @@ public final class MarkerBildschirm extends Screen {
 	}
 
 	private void aktualisiereSuche() {
-		String s = suche.strip().toLowerCase(Locale.ROOT);
-		List<Block> treffer = new ArrayList<>();
-		for (Block b : alleBloecke) {
-			if (treffer.size() >= MAX_TREFFER) {
-				break;
-			}
-			if (s.isEmpty() || b.getName().getString().toLowerCase(Locale.ROOT).contains(s)
-					|| BuiltInRegistries.BLOCK.getKey(b).toString().contains(s)) {
-				treffer.add(b);
-			}
-		}
-		suchListe.zeige(treffer);
+		suchListe.zeige(BlockSuche.filtere(alleBloecke, suche, MAX_TREFFER));
 	}
 
 	@Override
@@ -285,7 +273,7 @@ public final class MarkerBildschirm extends Screen {
 		g.centeredText(font, title, width / 2, 8, 0xFFFFFFFF);
 		ueberschrift(g, Component.translatable("blockmarker.spalte.profile"), 0);
 		ueberschrift(g, gewaehlt == null ? Component.translatable("blockmarker.spalte.bloecke.leer")
-				: Component.translatable("blockmarker.spalte.bloecke", gewaehlt.name()), 1);
+				: Component.translatable("blockmarker.spalte.bloecke", gewaehlt.anzeigeName()), 1);
 		ueberschrift(g, Component.translatable("blockmarker.spalte.suche"), 2);
 		Component status = e.aktivName() == null ? Component.translatable("blockmarker.status.aus")
 				: Component.translatable("blockmarker.status.aktiv", e.aktivName());
@@ -296,9 +284,19 @@ public final class MarkerBildschirm extends Screen {
 		g.text(font, font.plainSubstrByWidth(text.getString(), spalte()), x(nr), OBEN - 11, 0xFFA0A0A0);
 	}
 
-	/** Für den Test-Client: wie viele Blöcke die Suche gerade zeigt. */
-	public int anzahlTreffer() {
-		return suchListe.children().size();
+	/** Für den Test-Client: IDs der Blöcke, die die Suche gerade zeigt. */
+	public List<String> treffer() {
+		return suchListe.children().stream().map(z -> z.id).toList();
+	}
+
+	/** Für den Test-Client: Suchbegriff setzen, als wäre er getippt. */
+	public void sucheSetzen(String text) {
+		suchFeld.setValue(text);
+	}
+
+	/** Für den Test-Client: Profilnamen, wie sie in der Liste stehen. */
+	public List<String> profilNamen() {
+		return e.profile().stream().map(Profil::anzeigeName).toList();
 	}
 
 	@Override
@@ -361,8 +359,8 @@ public final class MarkerBildschirm extends Screen {
 
 			@Override
 			public void extractContent(GuiGraphicsExtractor g, int mausX, int mausY, boolean hover, float delta) {
-				boolean aktiv = profil.name().equals(e.aktivName());
-				g.text(font, (aktiv ? "● " : "  ") + profil.name(), getContentX() + 2, getContentY() + 3,
+				boolean aktiv = e.aktivesProfil().orElse(null) == profil;
+				g.text(font, (aktiv ? "● " : "  ") + profil.anzeigeName(), getContentX() + 2, getContentY() + 3,
 						aktiv ? 0xFF55FF55 : 0xFFFFFFFF);
 				String anzahl = String.valueOf(profil.eintraege().size());
 				g.text(font, anzahl, getContentRight() - font.width(anzahl) - 2, getContentY() + 3, 0xFF808080);
@@ -383,7 +381,7 @@ public final class MarkerBildschirm extends Screen {
 
 			@Override
 			public Component getNarration() {
-				return Component.literal(profil.name());
+				return Component.literal(profil.anzeigeName());
 			}
 		}
 	}
@@ -444,20 +442,27 @@ public final class MarkerBildschirm extends Screen {
 			super(breite, hoehe, x, y, 20);
 		}
 
-		void zeige(List<Block> bloecke) {
+		void zeige(List<BlockSuche.Kandidat> bloecke) {
 			replaceEntries(bloecke.stream().map(Zeile::new).toList());
 			setScrollAmount(0);
 		}
 
 		final class Zeile extends ObjectSelectionList.Entry<Zeile> {
+			final BlockSuche.Kandidat kandidat;
 			final Block block;
 			final String id;
 			final ItemStack icon;
+			final Component hilfe;
 
-			Zeile(Block block) {
-				this.block = block;
-				this.id = BuiltInRegistries.BLOCK.getKey(block).toString();
+			Zeile(BlockSuche.Kandidat kandidat) {
+				this.kandidat = kandidat;
+				this.id = kandidat.id();
+				this.block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(id));
 				this.icon = icon(block);
+				// Tooltip: englischer Name (falls er anders lautet) und ID – hilft beim Absprechen über Sprachen hinweg
+				String englisch = kandidat.nameEnglisch();
+				this.hilfe = Component.literal(englisch != null && !englisch.equals(kandidat.nameSpiel())
+						? englisch + " · " + id : id).withStyle(net.minecraft.ChatFormatting.GRAY);
 			}
 
 			@Override
@@ -469,9 +474,9 @@ public final class MarkerBildschirm extends Screen {
 				String zeichen = drin ? "✔" : "+";
 				int rechts = getContentRight();
 				g.text(font, zeichen, rechts - font.width(zeichen) - 2, y + 4, drin ? 0xFF55FF55 : 0xFFA0A0A0);
-				g.text(font, font.plainSubstrByWidth(block.getName().getString(), rechts - x - 34), x + 20, y + 4, 0xFFFFFFFF);
+				g.text(font, font.plainSubstrByWidth(kandidat.nameSpiel(), rechts - x - 34), x + 20, y + 4, 0xFFFFFFFF);
 				if (hover) {
-					g.setTooltipForNextFrame(Component.literal(id).withStyle(net.minecraft.ChatFormatting.GRAY), mausX, mausY);
+					g.setTooltipForNextFrame(hilfe, mausX, mausY);
 				}
 			}
 
@@ -483,7 +488,7 @@ public final class MarkerBildschirm extends Screen {
 
 			@Override
 			public Component getNarration() {
-				return block.getName();
+				return Component.literal(kandidat.nameSpiel());
 			}
 		}
 	}

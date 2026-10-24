@@ -6,22 +6,23 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonPrimitive;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Speichert die Einstellungen als lesbare JSON-Datei (config/blockmarker.json).
+ * Vorlagen werden mit ihrem Schlüssel gespeichert ({@code "vorlage": "diamanten"}), damit ihr Name der
+ * Spielsprache folgt; ein eigener Name steht unter {@code "name"}. Das aktive Profil ist seine Position.
  * Kaputte Dateien werden nicht überschrieben, sondern als .kaputt gesichert; dann gelten die Vorgaben.
  */
 public final class ProfilSpeicher {
-	public static final int VERSION = 1;
-	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+	public static final int VERSION = 2;
+	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().serializeNulls().create();
 
 	private ProfilSpeicher() {
 	}
@@ -29,11 +30,17 @@ public final class ProfilSpeicher {
 	public static String alsJson(Einstellungen e) {
 		JsonObject wurzel = new JsonObject();
 		wurzel.addProperty("version", VERSION);
-		wurzel.addProperty("aktiv", e.aktivName());
+		int aktiv = e.aktivesProfil().map(e.profile()::indexOf).orElse(-1);
+		wurzel.add("aktiv", aktiv < 0 ? null : new JsonPrimitive(aktiv));
 		JsonArray profile = new JsonArray();
 		for (Profil p : e.profile()) {
 			JsonObject po = new JsonObject();
-			po.addProperty("name", p.name());
+			if (p.vorlage() != null) {
+				po.addProperty("vorlage", p.vorlage());
+			}
+			if (p.eigenerName() != null) {
+				po.addProperty("name", p.eigenerName());
+			}
 			JsonArray bloecke = new JsonArray();
 			for (Eintrag ein : p.eintraege()) {
 				JsonObject eo = new JsonObject();
@@ -53,33 +60,50 @@ public final class ProfilSpeicher {
 	public static Einstellungen ausJson(String json) {
 		JsonObject wurzel = JsonParser.parseString(json).getAsJsonObject();
 		Einstellungen e = new Einstellungen();
-		List<String> namen = new ArrayList<>();
 		for (JsonElement pe : wurzel.getAsJsonArray("profile")) {
-			if (!pe.isJsonObject() || !pe.getAsJsonObject().has("name")) {
+			if (!pe.isJsonObject()) {
 				continue;
 			}
 			JsonObject po = pe.getAsJsonObject();
-			Profil p = e.neuesProfil(po.get("name").getAsString());
-			namen.add(p.name());
+			String name = text(po, "name");
+			String vorlage = text(po, "vorlage");
+			if (name == null && vorlage == null) {
+				continue;
+			}
+			Profil p = Profil.geladen(name, vorlage);
 			if (po.has("bloecke") && po.get("bloecke").isJsonArray()) {
 				for (JsonElement be : po.getAsJsonArray("bloecke")) {
 					if (!be.isJsonObject()) {
 						continue;
 					}
 					JsonObject bo = be.getAsJsonObject();
-					if (!bo.has("block")) {
+					String block = text(bo, "block");
+					if (block == null) {
 						continue;
 					}
-					int farbe = bo.has("farbe") ? Farben.lies(bo.get("farbe").getAsString()).orElse(0xFF2BD6) : 0xFF2BD6;
-					boolean leuchtet = bo.has("leuchtet") && bo.get("leuchtet").getAsBoolean();
-					p.setze(new Eintrag(bo.get("block").getAsString(), farbe, leuchtet));
+					String farbText = text(bo, "farbe");
+					int farbe = farbText == null ? 0xFF2BD6 : Farben.lies(farbText).orElse(0xFF2BD6);
+					boolean leuchtet = bo.has("leuchtet") && bo.get("leuchtet").isJsonPrimitive() && bo.get("leuchtet").getAsBoolean();
+					p.setze(new Eintrag(block, farbe, leuchtet));
 				}
 			}
+			e.fuegeGeladenesHinzu(p);
 		}
-		if (wurzel.has("aktiv") && wurzel.get("aktiv").isJsonPrimitive()) {
-			e.aktiviere(wurzel.get("aktiv").getAsString());
+		JsonElement aktiv = wurzel.get("aktiv");
+		if (aktiv != null && aktiv.isJsonPrimitive()) {
+			JsonPrimitive a = aktiv.getAsJsonPrimitive();
+			if (a.isNumber() && a.getAsInt() >= 0 && a.getAsInt() < e.profile().size()) {
+				e.aktiviere(e.profile().get(a.getAsInt()));
+			} else if (a.isString()) {
+				e.aktiviere(a.getAsString());
+			}
 		}
 		return e;
+	}
+
+	private static String text(JsonObject o, String schluessel) {
+		JsonElement el = o.get(schluessel);
+		return el != null && el.isJsonPrimitive() ? el.getAsString() : null;
 	}
 
 	/** Lädt die Datei; fehlt sie, gelten die Vorgaben. Ist sie kaputt, wird sie gesichert und die Vorgaben gelten. */

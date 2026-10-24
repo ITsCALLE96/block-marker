@@ -5,6 +5,7 @@ import de.itscalle96.blockmarker.kern.Einstellungen;
 import de.itscalle96.blockmarker.kern.Eintrag;
 import de.itscalle96.blockmarker.kern.Profil;
 import de.itscalle96.blockmarker.kern.ProfilSpeicher;
+import de.itscalle96.blockmarker.kern.Texte;
 import de.itscalle96.blockmarker.ui.MarkerBildschirm;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -15,6 +16,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Block;
@@ -49,6 +51,8 @@ public final class BlockMarkerClient implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
+		// Namen der vorgefertigten Profile in der Spielsprache (de_de/en_us, sonst Englisch)
+		Texte.setzeUebersetzer(schluessel -> Language.getInstance().getOrDefault(schluessel));
 		einstellungen = ProfilSpeicher.laden(datei());
 		geladen = aktiveEintraege();
 
@@ -120,7 +124,7 @@ public final class BlockMarkerClient implements ClientModInitializer {
 
 	private static void naechstesProfil(Minecraft mc) {
 		Optional<Profil> neu = einstellungen.naechstesProfil();
-		meldung(mc, neu.map(p -> Component.translatable("blockmarker.meldung.profil", p.name()).withStyle(ChatFormatting.AQUA))
+		meldung(mc, neu.map(p -> Component.translatable("blockmarker.meldung.profil", p.anzeigeName()).withStyle(ChatFormatting.AQUA))
 				.orElse(Component.translatable("blockmarker.meldung.aus").withStyle(ChatFormatting.GRAY)));
 		geaendert();
 	}

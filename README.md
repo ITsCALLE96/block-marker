@@ -18,11 +18,15 @@ Das Menü öffnet man über **Mod Menu → Block-Marker → Einstellungen** oder
 
 - **Profile:** anlegen, umbenennen, löschen, ein- oder ausschalten (Doppelklick)
 - **Blöcke im Profil:** Farbe aus knalligen Vorgaben oder als eigener Farbcode (`#RRGGBB`), Schalter „Leuchtet“
-- **Block hinzufügen:** Suche nach Namen in der Spielsprache (auch Deutsch) oder nach ID, mit Vorschau-Icon
+- **Block hinzufügen:** Suche mit Vorschau-Icon. Ein Block wird gefunden über seinen Namen in der Spielsprache, den englischen oder deutschen Namen oder die Block-ID (z. B. „Ancient“, „Antiker“, „cobble“, `minecraft:cobblestone`). Groß- und Kleinschreibung ist egal, Teilwörter reichen.
 
-Vorgefertigte Profile: **Netherite** (Ancient Debris), **Diamanten** (Diamant- und Tiefenschiefer-Diamanterz), **Tempel** (Bruchstein, bemooster Bruchstein). Beim ersten Start ist Block-Marker aus.
+Vorgefertigte Profile: **Netherite** (Ancient Debris), **Diamanten / Diamonds** (Diamant- und Tiefenschiefer-Diamanterz), **Tempel / Temple** (Bruchstein, bemooster Bruchstein). Ihre Namen folgen der Spielsprache, bis man sie umbenennt. Beim ersten Start ist Block-Marker aus.
 
-![Block-Marker-Menü mit Suche nach „diamant“](docs/menue.png)
+**Sprachen:** Deutsch und Englisch. Bei jeder anderen Spielsprache erscheint Englisch.
+
+| Spielsprache Deutsch | Spielsprache Englisch |
+|---|---|
+| ![Menü auf Deutsch](docs/menue_de.png) | ![Menü auf Englisch](docs/menue_en.png) |
 
 Die Einstellungen liegen in `config/blockmarker.json`.
 
@@ -41,9 +45,9 @@ Getestet mit Sodium 0.9.2 und Iris 1.11.7, mit und ohne Complementary-Reimagined
 Benötigt JDK 25.
 
 ```
-./gradlew test               # Farblogik, Profile, Pack-Generator
+./gradlew test               # Farblogik, Profile, Blocksuche (de/en), Pack-Generator
 ./gradlew build              # Jar in build/libs/
-./gradlew runClientGameTest  # Test-Client mit Sodium + Iris, Screenshots in build/block-marker-screenshots/
+./gradlew runClientGameTest  # Test-Client mit Sodium + Iris: Menü/Suche auf Englisch und Deutsch, Tasten, Screenshots in build/block-marker-screenshots/
 ```
 
 Für den Test-Client einmal den Shader herunterladen (siehe `testumgebung/LIESMICH.md`).

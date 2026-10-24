@@ -31,5 +31,8 @@
 	"blockmarker.knopf.leuchtet.hilfe": "The block stays fully bright in the dark. It does not glow through walls or light up its surroundings.",
 	"blockmarker.status.aus": "Currently off",
 	"blockmarker.status.aktiv": "Active: %s",
-	"blockmarker.profil.hilfe": "Double-click turns the profile on or off"
+	"blockmarker.profil.hilfe": "Double-click turns the profile on or off",
+	"blockmarker.vorlage.netherite": "Netherite",
+	"blockmarker.vorlage.diamanten": "Diamonds",
+	"blockmarker.vorlage.tempel": "Temple"
 }

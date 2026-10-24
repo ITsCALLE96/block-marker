@@ -2,6 +2,7 @@ package de.itscalle96.blockmarker.gametest;
 
 import de.itscalle96.blockmarker.BlockMarkerClient;
 import de.itscalle96.blockmarker.kern.Einstellungen;
+import de.itscalle96.blockmarker.kern.Profil;
 import de.itscalle96.blockmarker.ui.MarkerBildschirm;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -18,9 +19,10 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Test-Client: baut eine kleine Szene mit Ancient Debris, Diamant-/Tiefenschiefer-Diamanterz, Bruchstein,
- * bemoostem Bruchstein und normalem Stein (zum Vergleich), prüft die Tasten und fotografiert jedes Profil
- * bei Tag und Nacht, ohne und mit Shader. Bilder: build/block-marker-screenshots/.
+ * Test-Client: prüft Menü und Blocksuche mit Spielsprache Englisch und Deutsch, baut eine kleine Szene mit
+ * Ancient Debris, Diamant-/Tiefenschiefer-Diamanterz, Bruchstein, bemoostem Bruchstein und normalem Stein
+ * (zum Vergleich), prüft die Tasten und fotografiert jedes Profil bei Tag und Nacht, ohne und mit Shader.
+ * Bilder: build/block-marker-screenshots/.
  */
 public final class ScreenshotTest implements FabricClientGameTest {
 	private static final Path ZIEL = Path.of(System.getProperty("blockmarker.screenshots", "screenshots-block-marker"));
@@ -29,17 +31,13 @@ public final class ScreenshotTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext ctx) {
-		// Deutsch wie im Pack, damit auch die Suche mit deutschen Blocknamen geprüft wird
-		CompletableFuture<Void> sprache = ctx.computeOnClient(mc -> {
+		ctx.runOnClient(mc -> {
 			if (!mc.gui.hud.isHidden()) {
 				mc.gui.hud.toggle();
 			}
-			BlockMarkerClient.einstellungen().aktiviere(null);
-			mc.options.languageCode = "de_de";
-			mc.getLanguageManager().setSelected("de_de");
-			return BlockMarkerClient.jetztNeuLaden();
+			BlockMarkerClient.einstellungen().aktiviere((Profil) null);
 		});
-		ctx.waitFor(mc -> sprache.isDone() && mc.gui.overlay() == null, 20 * 120);
+		setzeSprache(ctx, "en_us");
 		try (TestSingleplayerContext welt = ctx.worldBuilder().create()) {
 			welt.getConnection().waitForChunksDownload();
 			BlockPos spieler = welt.getServer().computeOnServer(server -> welt.getConnection().getServerPlayer().blockPosition());
@@ -53,35 +51,80 @@ public final class ScreenshotTest implements FabricClientGameTest {
 			welt.getServer().runCommand(String.format("tp @p %d.0 %d %d.5 0 20", x, y, z));
 			welt.getConnection().waitForChunksRender();
 
+			// Menü und Suche in beiden Sprachen (Pascal spielt Englisch, Mitspieler Deutsch)
+			pruefeMenue(ctx, "en", List.of("Netherite", "Diamonds", "Temple"), "Cobblestone");
+			setzeSprache(ctx, "de_de");
+			welt.getConnection().waitForChunksRender();
+			pruefeMenue(ctx, "de", List.of("Netherite", "Diamanten", "Tempel"), "Bruchstein");
+
 			pruefeTasten(ctx, welt, new BlockPos(x - 3, y, z + 4));
 
 			for (boolean shader : new boolean[] {false, true}) {
 				setzeShader(ctx, welt, shader);
-				for (String profil : new String[] {null, "Netherite", "Diamanten", "Tempel"}) {
-					aktiviere(ctx, welt, profil);
+				for (String vorlage : new String[] {null, "netherite", "diamanten", "tempel"}) {
+					aktiviere(ctx, welt, vorlage);
 					for (String zeit : new String[] {"noon", "midnight"}) {
 						welt.getServer().runCommand("time set " + zeit);
 						ctx.waitTicks(shader ? 40 : 5);
-						foto(ctx, (profil == null ? "aus" : profil.toLowerCase()) + "_"
+						foto(ctx, (vorlage == null ? "aus" : vorlage) + "_"
 								+ (zeit.equals("noon") ? "tag" : "nacht") + "_" + (shader ? "shader" : "ohne-shader"));
 					}
 				}
 			}
 			setzeShader(ctx, welt, false);
-
-			// Menü: Profil Diamanten gewählt, Suche nach „diamant“ (deutsche Namen)
-			ctx.runOnClient(mc -> BlockMarkerClient.einstellungen().aktiviere("Diamanten"));
-			ctx.setScreen(() -> new MarkerBildschirm(null));
-			ctx.waitForScreen(MarkerBildschirm.class);
-			// Suchfeld hat beim Öffnen den Fokus – einfach lostippen
-			ctx.getInput().typeChars("diamant");
-			ctx.waitTicks(2);
-			int treffer = ctx.computeOnClient(mc -> ((MarkerBildschirm) mc.gui.screen()).anzahlTreffer());
-			pruefe(treffer >= 3 && treffer <= 6, "Suche nach „diamant“ findet Diamanterz, Tiefenschiefer-Diamanterz und Diamantblock, Treffer: " + treffer);
-			ctx.waitTicks(5);
-			foto(ctx, "menue", false);
-			ctx.setScreen(() -> null);
 		}
+	}
+
+	/**
+	 * Öffnet das Menü und prüft: Vorlagen-Namen in der Spielsprache; die Suche findet über Spielsprache,
+	 * Englisch, Deutsch und Block-ID. Der erste Begriff wird wirklich getippt (Suchfeld hat den Fokus).
+	 */
+	private static void pruefeMenue(ClientGameTestContext ctx, String sprache, List<String> profilNamen, String bruchsteinName) {
+		ctx.runOnClient(mc -> BlockMarkerClient.einstellungen().aktiviere(BlockMarkerClient.einstellungen().vorlage("diamanten").orElseThrow()));
+		ctx.setScreen(() -> new MarkerBildschirm(null));
+		ctx.waitForScreen(MarkerBildschirm.class);
+		List<String> namen = ctx.computeOnClient(mc -> bildschirm(mc).profilNamen());
+		pruefe(namen.equals(profilNamen), sprache + ": Profilnamen " + profilNamen + " erwartet, sind " + namen);
+
+		ctx.getInput().typeChars("Ancient");
+		ctx.waitTicks(2);
+		pruefeTreffer(ctx, sprache, "Ancient (getippt)", "minecraft:ancient_debris");
+		sucheUndPruefe(ctx, sprache, "Antiker", "minecraft:ancient_debris");
+		sucheUndPruefe(ctx, sprache, "cobble", "minecraft:cobblestone");
+		sucheUndPruefe(ctx, sprache, "COBBLESTONE", "minecraft:cobblestone");
+		sucheUndPruefe(ctx, sprache, "minecraft:cobblestone", "minecraft:cobblestone");
+		sucheUndPruefe(ctx, sprache, "ancient_debris", "minecraft:ancient_debris");
+		sucheUndPruefe(ctx, sprache, bruchsteinName, "minecraft:cobblestone");
+		sucheUndPruefe(ctx, sprache, "diamant", "minecraft:diamond_ore");
+		ctx.waitTicks(5);
+		foto(ctx, "menue_" + sprache, false);
+		ctx.setScreen(() -> null);
+		ctx.runOnClient(mc -> BlockMarkerClient.einstellungen().aktiviere((Profil) null));
+	}
+
+	private static void sucheUndPruefe(ClientGameTestContext ctx, String sprache, String begriff, String erwartet) {
+		ctx.runOnClient(mc -> bildschirm(mc).sucheSetzen(begriff));
+		ctx.waitTick();
+		pruefeTreffer(ctx, sprache, begriff, erwartet);
+	}
+
+	private static void pruefeTreffer(ClientGameTestContext ctx, String sprache, String begriff, String erwartet) {
+		List<String> treffer = ctx.computeOnClient(mc -> bildschirm(mc).treffer());
+		pruefe(treffer.contains(erwartet), sprache + ": Suche „" + begriff + "“ findet " + erwartet + " nicht, Treffer: "
+				+ (treffer.size() > 10 ? treffer.subList(0, 10) + " …" : treffer));
+	}
+
+	private static MarkerBildschirm bildschirm(net.minecraft.client.Minecraft mc) {
+		return (MarkerBildschirm) mc.gui.screen();
+	}
+
+	private static void setzeSprache(ClientGameTestContext ctx, String code) {
+		CompletableFuture<Void> fertig = ctx.computeOnClient(mc -> {
+			mc.options.languageCode = code;
+			mc.getLanguageManager().setSelected(code);
+			return BlockMarkerClient.jetztNeuLaden();
+		});
+		ctx.waitFor(mc -> fertig.isDone() && mc.gui.overlay() == null, 20 * 120);
 	}
 
 	/** Echte Tastendrücke: Profil durchschalten, dann Ancient Debris per Anschauen raus und wieder rein. */
@@ -121,9 +164,11 @@ public final class ScreenshotTest implements FabricClientGameTest {
 		welt.getConnection().waitForChunksRender();
 	}
 
-	private static void aktiviere(ClientGameTestContext ctx, TestSingleplayerContext welt, String profil) {
+	/** Aktiviert eine Vorlage über ihren Schlüssel (sprachunabhängig); null = aus. */
+	private static void aktiviere(ClientGameTestContext ctx, TestSingleplayerContext welt, String vorlage) {
 		CompletableFuture<Void> fertig = ctx.computeOnClient(mc -> {
-			BlockMarkerClient.einstellungen().aktiviere(profil);
+			Einstellungen e = BlockMarkerClient.einstellungen();
+			e.aktiviere(vorlage == null ? null : e.vorlage(vorlage).orElseThrow());
 			return BlockMarkerClient.jetztNeuLaden();
 		});
 		ctx.waitFor(mc -> fertig.isDone() && mc.gui.overlay() == null, 20 * 120);

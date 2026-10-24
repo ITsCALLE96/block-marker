@@ -31,5 +31,8 @@
 	"blockmarker.knopf.leuchtet.hilfe": "Der Block ist auch im Dunkeln voll hell. Er leuchtet nicht durch Wände und gibt kein Licht an die Umgebung ab.",
 	"blockmarker.status.aus": "Gerade aus",
 	"blockmarker.status.aktiv": "Aktiv: %s",
-	"blockmarker.profil.hilfe": "Doppelklick schaltet das Profil ein oder aus"
+	"blockmarker.profil.hilfe": "Doppelklick schaltet das Profil ein oder aus",
+	"blockmarker.vorlage.netherite": "Netherite",
+	"blockmarker.vorlage.diamanten": "Diamanten",
+	"blockmarker.vorlage.tempel": "Tempel"
 }

@@ -9,16 +9,16 @@ public final class Einstellungen {
 	public enum Umschaltung { HINZUGEFUEGT, ENTFERNT, KEIN_PROFIL }
 
 	private final List<Profil> profile = new ArrayList<>();
-	private String aktiv;
+	private Profil aktiv;
 
 	public static Einstellungen standard() {
 		Einstellungen e = new Einstellungen();
-		e.profile.add(new Profil("Netherite", List.of(
+		e.profile.add(Profil.vorlage("netherite", List.of(
 				new Eintrag("minecraft:ancient_debris", 0xFF2BD6, true))));
-		e.profile.add(new Profil("Diamanten", List.of(
+		e.profile.add(Profil.vorlage("diamanten", List.of(
 				new Eintrag("minecraft:diamond_ore", 0x00F0FF, true),
 				new Eintrag("minecraft:deepslate_diamond_ore", 0x00F0FF, true))));
-		e.profile.add(new Profil("Tempel", List.of(
+		e.profile.add(Profil.vorlage("tempel", List.of(
 				new Eintrag("minecraft:cobblestone", 0xFF8000, false),
 				new Eintrag("minecraft:mossy_cobblestone", 0xFF8000, false))));
 		return e;
@@ -28,44 +28,50 @@ public final class Einstellungen {
 		return profile;
 	}
 
-	public Optional<Profil> profil(String name) {
-		return profile.stream().filter(p -> p.name().equals(name)).findFirst();
+	/** Sucht nach dem angezeigten Namen (in der aktuellen Sprache). */
+	public Optional<Profil> profil(String anzeigeName) {
+		return profile.stream().filter(p -> p.anzeigeName().equals(anzeigeName)).findFirst();
+	}
+
+	/** Sucht eine Vorlage über ihren Schlüssel, unabhängig von Sprache und Umbenennung. */
+	public Optional<Profil> vorlage(String schluessel) {
+		return profile.stream().filter(p -> schluessel.equals(p.vorlage())).findFirst();
 	}
 
 	public Optional<Profil> aktivesProfil() {
-		return aktiv == null ? Optional.empty() : profil(aktiv);
+		return Optional.ofNullable(aktiv);
 	}
 
 	public String aktivName() {
-		return aktivesProfil().map(Profil::name).orElse(null);
+		return aktiv == null ? null : aktiv.anzeigeName();
 	}
 
-	public void aktiviere(String name) {
-		this.aktiv = name != null && profil(name).isPresent() ? name : null;
+	/** null schaltet aus. Unbekannte Profile werden ignoriert (= aus). */
+	public void aktiviere(Profil p) {
+		this.aktiv = p != null && profile.contains(p) ? p : null;
+	}
+
+	/** Aktiviert über den angezeigten Namen; null oder unbekannt = aus. */
+	public void aktiviere(String anzeigeName) {
+		aktiviere(anzeigeName == null ? null : profil(anzeigeName).orElse(null));
 	}
 
 	/** Aus → erstes Profil → … → letztes Profil → aus. Gibt das neue aktive Profil zurück (leer = aus). */
 	public Optional<Profil> naechstesProfil() {
-		if (profile.isEmpty()) {
-			aktiv = null;
-			return Optional.empty();
-		}
-		int i = aktivesProfil().map(profile::indexOf).orElse(-1) + 1;
-		aktiv = i < profile.size() ? profile.get(i).name() : null;
+		int i = aktiv == null ? 0 : profile.indexOf(aktiv) + 1;
+		aktiv = i < profile.size() ? profile.get(i) : null;
 		return aktivesProfil();
 	}
 
 	/** Block ins aktive Profil aufnehmen bzw. wieder entfernen. */
 	public Umschaltung umschalten(String block) {
-		Optional<Profil> p = aktivesProfil();
-		if (p.isEmpty()) {
+		if (aktiv == null) {
 			return Umschaltung.KEIN_PROFIL;
 		}
-		Profil profil = p.get();
-		if (profil.entferne(block)) {
+		if (aktiv.entferne(block)) {
 			return Umschaltung.ENTFERNT;
 		}
-		profil.setze(new Eintrag(block, profil.standardFarbe(), profil.standardLeuchten()));
+		aktiv.setze(new Eintrag(block, aktiv.standardFarbe(), aktiv.standardLeuchten()));
 		return Umschaltung.HINZUGEFUEGT;
 	}
 
@@ -81,9 +87,14 @@ public final class Einstellungen {
 		return p;
 	}
 
+	/** Für das Laden aus der Datei: Profil unverändert anhängen. */
+	void fuegeGeladenesHinzu(Profil p) {
+		profile.add(p);
+	}
+
 	public void loesche(Profil p) {
 		profile.remove(p);
-		if (p.name().equals(aktiv)) {
+		if (p == aktiv) {
 			aktiv = null;
 		}
 	}
@@ -94,11 +105,7 @@ public final class Einstellungen {
 		if (name.isEmpty() || profil(name).filter(x -> x != p).isPresent()) {
 			return false;
 		}
-		boolean warAktiv = p.name().equals(aktiv);
 		p.umbenennen(name);
-		if (warAktiv) {
-			aktiv = name;
-		}
 		return true;
 	}
 }
